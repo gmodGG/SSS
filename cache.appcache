@@ -1,0 +1,24 @@
+CACHE MANIFEST
+# rev 20260929-v14.7.0
+
+CACHE:
+index.html
+index.html?diag=1
+diagnostics.html
+diagnostics.js?v=37
+jb.html
+jb.html?diag=1
+jb.js?v=37
+core.js?v=37
+mem.js?v=37
+int64.js?v=37
+ps4_offsets.js?v=37
+rpc_worker.js
+payload2.bin
+goldhen.bin
+patches/1302.bin
+patches/1350.bin
+patches/1352.bin
+
+NETWORK:
+*

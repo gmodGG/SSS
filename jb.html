@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="ar" dir="rtl" manifest="cache.appcache?rev=20260929-v14.7.0">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#07100d">
+<title>PS4 | تنفيذ التفعيل</title>
+<style>
+:root{color-scheme:dark;--bg:#060a09;--panel:#0e1512;--line:#24342b;--line2:#34493b;--text:#f2f7f3;--muted:#a2b2a8;--dim:#718078;--green:#8be5ae;--warn:#f0d184;--bad:#f08c83}*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font:15px/1.65 system-ui,"Segoe UI",sans-serif}body{min-height:100vh;padding-bottom:20px;background-image:radial-gradient(700px 420px at 50% -100px,rgba(80,170,110,.14),transparent 72%)}#brand{min-height:62px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:9px 22px;border-bottom:1px solid var(--line);background:#080e0a}.brand-main{display:flex;align-items:center;gap:10px}.mark{display:grid;place-items:center;width:38px;height:38px;border:1px solid var(--line2);border-radius:12px;background:#111d15;color:var(--green);font-size:10px;font-weight:950}.brand-copy b{display:block;font-size:13px}.brand-copy small{color:var(--dim);font-size:10px}.phase{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:10px}.phase i{width:8px;height:8px;border-radius:50%;background:var(--green);box-shadow:0 0 10px #8be57766}.phase b{color:var(--text)}#wrap{width:min(900px,calc(100% - 28px));margin:18px auto}.panel{border:1px solid var(--line);border-radius:20px;background:linear-gradient(150deg,#111a14,#0a100c);overflow:hidden;box-shadow:0 22px 70px #0006}.panel-head{padding:18px 20px;border-bottom:1px solid var(--line)}.panel-head strong{font-size:14px}.panel-head p{margin:3px 0 0;color:var(--dim);font-size:11px}.statebox{margin:16px 20px 11px;padding:16px;border:1px solid var(--line2);border-radius:15px;background:#0a110c}.state-label{color:var(--dim);font-size:10px;font-weight:850}.state-value{margin-top:4px;font-size:18px;font-weight:900}.state-value.warn{color:var(--warn)}.state-value.bad{color:var(--bad)}.state-value.ok,.state-value.safe{color:var(--green)}.state-line{height:4px;margin-top:12px;border-radius:99px;background:#1b2920;overflow:hidden}.state-line span{display:block;width:30%;height:100%;background:linear-gradient(90deg,#45634d,var(--green));animation:flow 1.2s ease-in-out infinite}.done .state-line span{width:100%;animation:none}.fail .state-line span{width:100%;animation:none;background:var(--bad)}.mini{display:flex;gap:7px;margin:0 20px 12px;flex-wrap:wrap}.chip{padding:5px 8px;border:1px solid var(--line);border-radius:8px;background:#0b120d;color:#9aaba0;font-size:9px;font-weight:800}.chip.ok{color:var(--green);border-color:#345540}.result{display:none;margin:0 20px 12px;padding:11px 13px;border:1px solid var(--line2);border-radius:11px;background:#101914;font-weight:850}#msg[role="status"]{color:var(--green)}#msg[role="alert"]{color:var(--bad)}.done #msg,.fail #msg,.log #msg{display:block}.done #msg{border-color:#345540;background:#0d1b12}.fail #msg{border-color:#653e38;background:#1e1110}#retry{display:none;margin:0 20px 16px;padding:9px 13px;border:1px solid var(--line2);border-radius:9px;background:#121b15;color:var(--text);font-weight:800;cursor:pointer}.fail #retry,.log #retry:not([hidden]){display:inline-block}#out{display:none;white-space:pre-wrap;direction:ltr;text-align:left;font:11px/1.55 Consolas,monospace;background:#080c09;border:1px solid var(--line);border-radius:12px;padding:13px;margin:0 20px 20px;height:calc(100vh - 250px);min-height:150px;overflow:auto}.log #out{display:block}.return-link{display:none;margin:0 20px 16px;padding:9px 13px;border:1px solid var(--line2);border-radius:9px;background:#121b15;color:var(--text);font-weight:800;text-decoration:none}.done .return-link:not([hidden]),.fail .return-link:not([hidden]),.log .return-link:not([hidden]){display:inline-block}.ok,.safe{color:var(--green)}.warn{color:var(--warn)}.bad,.danger{color:var(--bad)}@keyframes flow{0%{transform:translateX(-120%)}100%{transform:translateX(390%)}}@media(max-width:560px){#brand{padding:8px 13px}.phase{font-size:9px}#wrap{width:calc(100% - 20px);margin:10px auto}.panel-head{padding:15px}.statebox{margin-left:12px;margin-right:12px}.mini{margin-left:12px;margin-right:12px}.result,#retry,.return-link{margin-right:12px;margin-left:12px}#out{margin-left:12px;margin-right:12px;height:calc(100vh - 225px)}}@media(prefers-reduced-motion:reduce){.state-line span{animation:none}}
+</style>
+</head>
+<body>
+<script src="diagnostics.js?v=37"></script>
+<script>
+(function(){
+  function showFailure(kind,detail){
+    try{
+      if(window.__RAWGAME_EXECUTION_FINISHED)return;
+      var msg=document.getElementById("msg"),state=document.getElementById("state");
+      if(msg){msg.textContent=kind+(detail?" · "+String(detail):"");msg.setAttribute("role","alert")}
+      if(state){state.textContent="تعذر إكمال التنفيذ";state.className="state-value bad"}
+      var retry=document.getElementById("retry");if(retry)retry.hidden=false;
+      document.body.className="fail";
+    }catch(e){}
+  }
+  window.addEventListener("error",function(e){showFailure("خطأ في الصفحة",e&&(e.message||e.error)||"")},false);
+  window.addEventListener("unhandledrejection",function(e){var r=e&&e.reason;showFailure("خطأ أثناء التنفيذ",r&&r.message||r||"")},false);
+})();
+</script>
+<header id="brand"><div class="brand-main"><div class="mark">PS4</div><div class="brand-copy"><b>تنفيذ التفعيل</b><small>مرحلة التنفيذ المحلية</small></div></div><div class="phase"><i></i><span>الحالة</span><b id="phaseText">قيد البدء</b></div></header>
+<main id="wrap"><section class="panel"><div class="panel-head"><strong>متابعة حالة الجلبريك</strong><p>اترك الصفحة مفتوحة حتى تظهر النتيجة النهائية.</p></div><div class="statebox"><div class="state-label">المرحلة الحالية</div><div id="state" class="state-value">جارٍ تجهيز التنفيذ…</div><div class="state-line"><span></span></div></div><div class="mini"><span class="chip ok">تشغيل محلي</span><span class="chip">فحص المراحل</span><span class="chip">استعادة محدودة</span></div><div id="msg" class="result" aria-live="polite"></div><button id="retry" type="button" hidden>إعادة تحميل صفحة التنفيذ</button><a id="returnLauncher" class="return-link" href="index.html" hidden>الرجوع إلى المشغّل</a><div id="out" aria-label="سجل التشخيص"></div></section></main>
+<script type="module">import "./jb.js?v=37";</script>
+<script>
+(function(){
+  "use strict";
+  window.__RAWGAME_MODULE_WATCHDOG_FIRED=false;
+  window.__RAWGAME_WATCHDOG_PHASE="boot";
+  var retry=document.getElementById("retry"),state=document.getElementById("state"),msg=document.getElementById("msg"),phase=document.getElementById("phaseText");
+  if(retry)retry.addEventListener("click",function(){if(!window.__RAWGAME_EXECUTION_FINISHED)location.reload()},false);
+  var bootWarn=setTimeout(function(){
+    if(window.__RAWGAME_MODULE_BOOTED||window.__RAWGAME_EXECUTION_FINISHED)return;
+    window.__RAWGAME_MODULE_WATCHDOG_FIRED=true;window.__RAWGAME_WATCHDOG_PHASE="module-warn";
+    if(msg){msg.textContent="ما زال تحميل وحدة التنفيذ جاريًا";msg.setAttribute("role","status");msg.style.display="block"}
+    if(state){state.textContent="تحميل وحدة التنفيذ يستغرق وقتًا أطول";state.className="state-value warn"}
+    if(phase)phase.textContent="تحميل متأخر";
+  },15000);
+  var bootFail=setTimeout(function(){
+    if(window.__RAWGAME_MODULE_BOOTED||window.__RAWGAME_EXECUTION_FINISHED)return;
+    window.__RAWGAME_WATCHDOG_PHASE="module-timeout";
+    if(msg){msg.textContent="لم تبدأ وحدة التنفيذ؛ يمكنك إعادة تحميل الصفحة";msg.setAttribute("role","alert")}
+    if(state){state.textContent="تعذر بدء وحدة التنفيذ";state.className="state-value bad"}
+    if(retry)retry.hidden=false;
+    var returnLauncher=document.getElementById("returnLauncher");if(returnLauncher)returnLauncher.hidden=false;
+    if(phase)phase.textContent="تعذر البدء";
+    document.body.className="fail";
+  },30000);
+  window.__RAWGAME_MODULE_WATCHDOG=bootFail;
+  window.__RAWGAME_CLEAR_WATCHDOG=function(){try{clearTimeout(bootWarn);clearTimeout(bootFail)}catch(e){}};
+  var softGuard=setInterval(function(){
+    try{
+      if(window.__RAWGAME_EXECUTION_FINISHED){clearInterval(softGuard);return}
+      if(window.__RAWGAME_MODULE_BOOTED&&typeof window.__RAWGAME_LAST_PROGRESS==="number"){
+        var stale=Date.now()-window.__RAWGAME_LAST_PROGRESS;
+        if(stale>60000&&stale<=180000&&document.body.className!=="done"&&document.body.className!=="fail"){
+          window.__RAWGAME_WATCHDOG_PHASE="progress-stale-warning";
+          if(msg){msg.textContent="التنفيذ ما زال جاريًا؛ بانتظار المرحلة التالية";msg.setAttribute("role","status");msg.style.display="block"}
+          if(state){state.textContent="بانتظار نقطة التحقق التالية";state.className="state-value warn"}
+          if(phase)phase.textContent="قيد الانتظار";
+        }else if(stale<=60000){if(msg&&msg.getAttribute("role")==="status")msg.style.display="none"}
+      }
+    }catch(e){}
+  },5000);
+  window.addEventListener("error",function(e){
+    if(window.__RAWGAME_EXECUTION_FINISHED)return;
+    if(e&&e.target&&e.target.tagName==="SCRIPT"){
+      if(msg){msg.textContent="فشل تحميل وحدة التنفيذ؛ أعد المحاولة";msg.setAttribute("role","alert")}
+      if(state){state.textContent="فشل تحميل وحدة التنفيذ";state.className="state-value bad"}
+      if(retry)retry.hidden=false;
+      var returnLauncher=document.getElementById("returnLauncher");if(returnLauncher)returnLauncher.hidden=false;
+      if(phase)phase.textContent="خطأ";
+      document.body.className="fail";
+    }
+  },true);
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="ar" dir="rtl" manifest="cache.appcache?rev=20260929-v14.7.0">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#080d0a">
+<title>PS4 | تشغيل</title>
+<style>
+:root{color-scheme:dark;--bg:#070b09;--panel:#0e1511;--line:#28372e;--text:#f2f6f3;--muted:#9eaca4;--green:#8ee6ae;--warn:#efd17d;--bad:#f08d84}
+*{box-sizing:border-box}html,body{margin:0;min-height:100%;background:var(--bg);color:var(--text);font:16px/1.55 system-ui,"Segoe UI",sans-serif}body{padding:12px}.wrap{width:min(560px,100%);margin:0 auto}.top{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}.brand{font-weight:900}.brand small{display:block;color:var(--muted);font-size:10px;font-weight:600;margin-top:1px}.net{font-size:10px;color:var(--muted)}.panel{border:1px solid var(--line);border-radius:14px;background:var(--panel);overflow:hidden}.head{padding:15px 16px;border-bottom:1px solid var(--line)}.head b{font-size:16px}.head span{float:left;color:#748179;font-size:10px}.body{padding:16px}.state{padding:14px;border:1px solid var(--line);border-radius:11px;background:#0a110c}.state-title{font-size:18px;font-weight:900}.state-detail{margin-top:4px;color:var(--muted);font-size:12px}.state.busy .state-title,.state.warn .state-title{color:var(--warn)}.state.ok .state-title{color:var(--green)}.state.bad .state-title{color:var(--bad)}.meta{display:flex;gap:8px;margin-top:9px}.chip{flex:1;padding:8px;border:1px solid var(--line);border-radius:9px;text-align:center;font-size:11px}.chip b{display:block;font-size:12px;margin-top:2px}.ok{color:var(--green)}.warn{color:var(--warn)}.bad{color:var(--bad)}.primary{width:100%;min-height:48px;margin-top:12px;border:1px solid #3f7350;border-radius:10px;background:#17301f;color:#d9f6e1;font:900 15px inherit;cursor:pointer}.primary:disabled{opacity:.5;cursor:not-allowed}.secondary{background:#121a15;border-color:var(--line);color:var(--text)}.row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px;padding-top:12px;border-top:1px solid var(--line)}.copy strong{display:block;font-size:13px}.copy span{display:block;color:var(--muted);font-size:10px}.switch{position:relative;width:44px;height:24px;flex:0 0 auto}.switch input{position:absolute;opacity:0;width:1px;height:1px}.switch span{position:absolute;inset:0;border:1px solid #5a675f;border-radius:20px;background:#26312a}.switch span:before{content:"";position:absolute;top:3px;right:3px;width:16px;height:16px;border-radius:50%;background:#c7d0ca}.switch input:checked+span{background:#1f5a34}.switch input:checked+span:before{right:23px;background:var(--green)}.actions{display:flex;gap:8px;margin-top:11px}.link{flex:1;min-height:38px;display:flex;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:9px;background:#121a15;color:var(--text);text-decoration:none;font-size:11px}.note{margin-top:11px;color:#78857d;font-size:10px;text-align:center}.footer{margin-top:9px;color:#667169;text-align:center;font-size:9px}@media(max-width:460px){body{padding:8px}.body{padding:12px}.meta{gap:5px}.chip{padding:7px 4px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top"><div class="brand">PS4 · تشغيل<small>v14.7.0 Deep Stability</small></div><div class="net" id="net">جارٍ الفحص…</div></div>
+  <main class="panel">
+    <div class="head"><b>تفعيل النظام</b><span id="statusCode">BOOT</span></div>
+    <div class="body">
+      <div id="state" class="state"><div id="title" class="state-title">جارٍ فحص الجهاز…</div><div id="detail" class="state-detail">انتظر جاهزية الإصدار والكاش.</div></div>
+      <div class="meta">
+        <div class="chip">الإصدار<b id="fw">—</b></div>
+        <div class="chip">التوافق<b id="compat">—</b></div>
+        <div class="chip">الكاش<b id="cache">—</b></div>
+      </div>
+      <button id="go" class="primary" type="button">تفعيل الآن</button><button id="cancelAuto" class="primary secondary" type="button" hidden>إلغاء التفعيل التلقائي</button>
+      <label class="row" for="auto"><span class="copy"><strong>التفعيل التلقائي</strong><span id="autoText">يبدأ تلقائيًا عند فتح المتصفح.</span></span><span class="switch"><input id="auto" type="checkbox"><span aria-hidden="true"></span></span></label>
+      <div class="actions"><a class="link" href="diagnostics.html">التشخيص</a><a class="link" href="jb.html?diag=1">فحص التنفيذ</a></div>
+      <div class="note" id="note">التشغيل التلقائي مفعّل افتراضيًا ويمكن إيقافه من المفتاح.</div>
+    </div>
+  </main>
+  <div class="footer">13.02 · 13.04 · 13.50 · 13.52</div>
+</div>
+<script src="diagnostics.js?v=37"></script>
+<script>
+(function(){
+  "use strict";
+  var $=function(id){return document.getElementById(id)};
+  var state=$('state'),title=$('title'),detail=$('detail'),code=$('statusCode'),fw=$('fw'),compat=$('compat'),cache=$('cache'),net=$('net'),go=$('go'),auto=$('auto'),autoText=$('autoText'),note=$('note'),cancelAuto=$('cancelAuto');
+  var app=window.applicationCache;
+  var supported={"13.02":1,"13.04":1,"13.50":1,"13.52":1};
+  var CACHE={IDLE:1,UPDATEREADY:4,CACHED:1,UNCACHED:0,CHECKING:2,DOWNLOADING:3};
+  var AUTO_KEY="ps4-auto-activation-v6",OLD_KEY="ps4-auto-activation-v5";
+  var SESSION_TRIED="ps4-auto-attempted-session-v1",SESSION_SUCCESS="ps4-auto-success-session-v1";
+  var launched=false,autoForVisit=false,autoConsumed=false,timer=null,tick=null,left=5,key=null,cacheUpdateRequested=false;
+  function pref(k){try{return localStorage.getItem(k)}catch(e){return null}}
+  function setPref(k,v){try{localStorage.setItem(k,v);return true}catch(e){return false}}
+  function sessGet(k){try{return sessionStorage.getItem(k)}catch(e){return null}}
+  function sessSet(k,v){try{sessionStorage.setItem(k,v);return true}catch(e){return false}}
+  function sessDel(k){try{sessionStorage.removeItem(k)}catch(e){}}
+  function online(){return navigator.onLine!==false}
+  function cacheReady(){try{if(!app)return true;var s=app.status;return s===CACHE.IDLE||s===CACHE.UPDATEREADY||s===CACHE.CACHED}catch(e){return false}}
+  function resourcesReady(){return cacheReady() && !!key && supported[key]===1}
+  function diag(n,d){try{if(window.__PS4_DIAG_EVENT)window.__PS4_DIAG_EVENT(n,d)}catch(e){}}
+  function setState(t,d,c,s){title.textContent=t;detail.textContent=d||"";code.textContent=s||"READY";state.className="state"+(c?" "+c:"")}
+  function clearAuto(){if(timer!==null){clearTimeout(timer);timer=null}if(tick!==null){clearInterval(tick);tick=null}if(cancelAuto)cancelAuto.hidden=true}
+  function hasSessionSuccess(){return sessGet(SESSION_SUCCESS)==="1"}
+  function hasSessionAttempt(){return sessGet(SESSION_TRIED)==="1"}
+  function target(){return "jb.html"}
+  function launch(reason,automatic){
+    if(launched||!supported[key])return;
+    if(!resourcesReady()){setState("جارٍ تجهيز الملفات","انتظر اكتمال الكاش قبل بدء التنفيذ.","warn","CACHE");return}
+    clearAuto();launched=true;autoForVisit=false;autoConsumed=true;if(automatic)sessSet(SESSION_TRIED,"1");diag(automatic?"activation.auto":"activation.manual",reason||"");setState("جارٍ بدء التفعيل",reason||"فتح وحدة التنفيذ…","busy","START");go.disabled=true;auto.disabled=true;
+    setTimeout(function(){try{location.replace(target())}catch(e){launched=false;auto.disabled=false;go.disabled=false;setState("تعذر فتح التنفيذ","أعد المحاولة من الصفحة نفسها.","bad","NAV")}},0);
+  }
+  function autoLaunch(){
+    if(launched||autoConsumed||!auto.checked||!resourcesReady())return;
+    if(hasSessionSuccess()){autoConsumed=true;autoText.textContent="اكتمل التفعيل في هذه الجلسة؛ لن يُعاد تلقائيًا.";diag("activation.auto-suppressed","session-success");return}
+    if(hasSessionAttempt()){autoConsumed=true;autoText.textContent="كانت هناك محاولة تلقائية في هذه الجلسة؛ استخدم التفعيل اليدوي لإعادة المحاولة.";diag("activation.auto-suppressed","session-attempt");return}
+    if(timer!==null)return;
+    left=5;autoConsumed=true;go.disabled=true;cancelAuto.hidden=false;setState("التفعيل تلقائيًا خلال 5","تقدر تلغي من الزر الآن.","warn","AUTO");
+    tick=setInterval(function(){left--;if(left>0)setState("التفعيل تلقائيًا خلال "+left,"تقدر تلغي من الزر الآن.","warn","AUTO")},1000);
+    timer=setTimeout(function(){clearAuto();if(auto.checked&&!launched&&resourcesReady())launch("تفعيل تلقائي",true);else{autoConsumed=false;go.disabled=false}},5000);
+  }
+  function initAuto(){
+    var saved=pref(AUTO_KEY),legacy=pref(OLD_KEY);
+    if(saved===null)saved=legacy==="0"?"0":"1";
+    auto.checked=saved!=="0";autoForVisit=auto.checked;autoConsumed=false;
+    autoText.textContent=auto.checked?"يبدأ تلقائيًا بعد جاهزية الملفات، مع مهلة 5 ثوانٍ للإلغاء.":"متوقف؛ استخدم زر التفعيل يدويًا.";
+  }
+  function inspect(){
+    var m=/PlayStation\s+4[\/ ](\d+)\.(\d+)/.exec(navigator.userAgent);if(m){var minor=parseInt(m[2],16);key=m[1]+"."+(minor<16?"0":"")+minor.toString(16)}
+    fw.textContent=key||"غير معروف";if(window.__PS4_DIAG_FIRMWARE)window.__PS4_DIAG_FIRMWARE(key||"unknown");
+    var ok=supported[key]===1;compat.textContent=ok?"مدعوم":"غير مدعوم";compat.className="chip "+(ok?"ok":"bad");net.textContent=online()?"متصل":"غير متصل";cache.textContent=cacheReady()?"جاهز":"شبكة";
+    if(!key){setState("تعذر تحديد الإصدار","افتح الصفحة داخل متصفح PS4.","bad","NO-FW");go.disabled=true;auto.disabled=true;return}
+    if(!ok){setState("الإصدار غير مدعوم","لا توجد ملفات توافق لهذا الإصدار.","bad","BLOCK");go.disabled=true;auto.disabled=true;return}
+    note.textContent=hasSessionSuccess()?"تم تأكيد التفعيل في هذه الجلسة؛ لن يعمل التلقائي مرة ثانية.":"التفعيل التلقائي مفعّل افتراضيًا، وتوجد 5 ثوانٍ لإلغائه.";
+    if(hasSessionSuccess())autoText.textContent="اكتمل التفعيل في هذه الجلسة؛ اضغط التفعيل يدويًا عند الحاجة.";
+    setState(cacheReady()?"جاهز للتفعيل":"جارٍ تجهيز الملفات","الإصدار مدعوم؛ انتظر جاهزية الموارد قبل التنفيذ.",cacheReady()?"ok":"warn",cacheReady()?"READY":"CACHE");
+    go.disabled=!cacheReady();auto.disabled=false;
+    if(app&&!cacheUpdateRequested){cacheUpdateRequested=true;try{app.update()}catch(e){}}
+    if(autoForVisit&&resourcesReady())autoLaunch();
+  }
+  initAuto();inspect();
+  auto.addEventListener("change",function(){var on=!!auto.checked;setPref(AUTO_KEY,on?"1":"0");diag(on?"setting.auto-on":"setting.auto-off");if(on){sessDel(SESSION_TRIED);sessDel(SESSION_SUCCESS);autoConsumed=false;autoForVisit=true;autoText.textContent="سيبدأ تلقائيًا بعد 5 ثوانٍ من الجاهزية.";if(resourcesReady())autoLaunch()}else{autoForVisit=false;autoConsumed=true;clearAuto();go.disabled=!resourcesReady();autoText.textContent="متوقف؛ استخدم زر التفعيل يدويًا."}});
+  if(cancelAuto)cancelAuto.addEventListener("click",function(){auto.checked=false;setPref(AUTO_KEY,"0");autoForVisit=false;autoConsumed=true;clearAuto();go.disabled=!resourcesReady();autoText.textContent="تم إلغاء التفعيل التلقائي لهذه الزيارة.";diag("setting.auto-cancelled")});
+  go.addEventListener("click",function(){sessDel(SESSION_TRIED);sessDel(SESSION_SUCCESS);autoConsumed=true;launch("بدأ التفعيل يدويًا",false)});
+  window.addEventListener("online",function(){net.textContent="متصل";cache.textContent=cacheReady()?"جاهز":"شبكة";if(autoForVisit&&resourcesReady()&&!autoConsumed)autoLaunch()});
+  window.addEventListener("offline",function(){net.textContent="غير متصل";cache.textContent=cacheReady()?"جاهز":"غير جاهز"});
+  if(app){["cached","noupdate","updateready"].forEach(function(ev){app.addEventListener(ev,function(){cache.textContent="جاهز";if(!launched)setState("جاهز للتفعيل","الملفات جاهزة؛ يمكنك بدء التنفيذ.","ok","READY");if(autoForVisit&&resourcesReady()&&!autoConsumed)autoLaunch()})})}
+})();
+</script>
+</body>
+</html>
