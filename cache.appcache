@@ -1,24 +1,24 @@
 CACHE MANIFEST
-# rev 20260929-v14.7.0
+# rev 20260929-v13.4-development-stability
 
 CACHE:
 index.html
-index.html?diag=1
-diagnostics.html
-diagnostics.js?v=37
 jb.html
-jb.html?diag=1
-jb.js?v=37
-core.js?v=37
-mem.js?v=37
-int64.js?v=37
-ps4_offsets.js?v=37
+jb.js
+jb.js?v=20
+core.js
+core.js?v=10
+mem.js
+int64.js
+ps4_offsets.js
 rpc_worker.js
 payload2.bin
 goldhen.bin
 patches/1302.bin
 patches/1350.bin
 patches/1352.bin
+diagnostics.html
+diagnostics.js
 
 NETWORK:
 *

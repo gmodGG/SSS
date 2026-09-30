@@ -13,14 +13,35 @@ const FUNCTION_BYTES = 0x20;
 const NATIVE_EXECUTABLE_BYTES = 0x38;
 const HOLDER_BYTES = 0x40;
 
-const CARRIER_SLOTS = 12000000;
+const CARRIER_SLOTS = (function () {
+  try {
+    const q = new URLSearchParams(location.search).get("slots");
+    const n = q ? parseInt(q, 10) : 0;
+    if (n >= 100000 && n <= 40000000) return n;
+  } catch (e) {}
+  return 12000000;
+})();
 const CARRIER_BYTES = CARRIER_SLOTS * 8;
 const CAPTURE_DELAY_MS = 50;
 const COMPOSE_DELAY_MS = 100;
 
 const symbolToString = Symbol.prototype.toString;
 
-const _g = (name, dflt) => dflt;
+const _gOverride = (function () {
+  const out = {};
+  try {
+    const q = new URLSearchParams(location.search).getAll("g");
+    for (const item of q) {
+      const [k, v] = item.split(":");
+      const n = v && v.startsWith("0x") ? parseInt(v, 16) : parseInt(v, 10);
+      if (k && n > 0) out[k] = n;
+    }
+  } catch (e) {}
+  return out;
+})();
+const _g = (name, dflt) =>
+  typeof _gOverride[name] === "number" ? _gOverride[name] : dflt;
+if (typeof _gOverride.drain === "number") DRAIN_COUNT = _gOverride.drain;
 
 const DRAIN_SIZE = _g("drainsz", 0x10000);
 const SLAB_SIZE = _g("slab", 0x400000);
