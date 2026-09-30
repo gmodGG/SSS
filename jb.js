@@ -298,8 +298,12 @@ let allDone = false,
     // cannot be caught here and still needs a reboot -- this only recovers
     // the benign, detectable misses.
     const retryArg = parseInt(params.get("retry") || "", 10);
-    const RETRY_MAX = Number.isFinite(retryArg) && retryArg >= 0 ? retryArg : 4;
-    const RETRY_KEY = "jb1352-read-retry";
+    const RETRY_MAX = Number.isFinite(retryArg) && retryArg >= 0
+      ? Math.min(retryArg, 4)
+      : 3;
+    // Keep retry state isolated per firmware so a failed run on one build
+    // can never consume the retry budget for another build.
+    const RETRY_KEY = "RAWGAME_READ_RETRY_" + fwKey.replace(/[^0-9A-Za-z_.-]/g, "_");
     const retryCount = () => {
       try {
         const v = parseInt(sessionStorage.getItem(RETRY_KEY) || "0", 10);
@@ -345,7 +349,7 @@ let allDone = false,
       return true;
     };
     if (retryCount() > 0)
-      mark("AUTO-RELOAD-RESUME", "reload=" + retryCount() + "/" + RETRY_MAX);
+      mark("AUTO-RELOAD-RESUME", "reload=" + retryCount() + "/" + RETRY_MAX + " key=" + RETRY_KEY);
 
     state("running the primitive...", "warn");
     await new Promise((r) => setTimeout(r, 0));
@@ -3909,6 +3913,7 @@ let allDone = false,
         (allDone ? "" : "  INCOMPLETE"),
     );
     try {
+      window.__RAWGAME_LAST_PROGRESS = Date.now();
       const result = {
         allDone: !!allDone,
         jailbroken: !!jailbroken,
@@ -3921,6 +3926,9 @@ let allDone = false,
         if (typeof window.__RAWGAME_DIAG_EVENT === "function") {
           window.__RAWGAME_DIAG_EVENT("execution", "execution.result", JSON.stringify(result));
           window.__RAWGAME_DIAG_FINALIZE = true;
+          if (typeof window.__RAWGAME_DIAG_SNAPSHOT === "function") {
+            window.__RAWGAME_DIAG_SNAPSHOT();
+          }
         }
       } catch (eDiag) {}
       try { window.__RAWGAME_EXECUTION_RESULT = result; } catch (eResult) {}
